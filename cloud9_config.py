@@ -38,19 +38,18 @@ assume_role_policy_doc = json.dumps({
 # Create a Cloud9 environment
 cloud9_create_response = cloud9.create_environment_ec2(
     name= ide_name,
-    description='This is my demonstration environment.',
+    description='AppMesh Workshop IDE.',
     instanceType='t2.micro',
+    tags=[
+        {
+            'Key': 'Env',
+            'Value': 'AppMesh-Workshop-6'       ##TAG
+        },
+    ]
 )
 
 environmentId = cloud9_create_response['environmentId']
-
-# describe_env_response = cloud9.describe_environments(
-#     environmentIds=[
-#         environmentId,
-#     ]
-# )
-
-# print(json.dumps(describe_env_response, indent=2))
+print(f"environmentId = {environmentId}")
 
 # # Create an IAM role
 create_role_response = iam.create_role(
@@ -76,25 +75,24 @@ add_role_response = iam.add_role_to_instance_profile(
     RoleName=role_name
 )
 
-instance_name = f"aws-cloud9-{ide_name}-{environmentId}"
+time.sleep(30)
 
 # Describe the underlying EC2 instance
-ec2_describe_response = ec2.describe_instances(
-    Filters=[
-        {
-            'Name': 'tag:Name',
-            'Values': [
-                instance_name,
-            ]
-        }
-    ]
-)
+ec2_describe_response = ec2.describe_instances(Filters=[{'Name': 'tag:Env','Values': ["AppMesh-Workshop-6"]}])     ##TAG
 
+print(ec2_describe_response)
 instance_id = ec2_describe_response['Reservations'][0]['Instances'][0]['InstanceId']
+instance_state = ec2_describe_response['Reservations'][0]['Instances'][0]['State']['Name']
+print(f"instance_state = {instance_state}")
+print(f"instance_id = {instance_id}")
 
-# print(json.dumps(ec2_describe_response, indent=2, default=str))
 
-time.sleep(10)
+# Wait for instance to be in a running state 
+while instance_state == "pending":
+    print("instance_state is pending")
+    time.sleep(5)
+    ec2_describe_response = ec2.describe_instances(Filters=[{'Name': 'tag:Env','Values': ["AppMesh-Workshop-6"]}])  ##TAG
+    instance_state = ec2_describe_response['Reservations'][0]['Instances'][0]['State']['Name']
 
 # # Associate IAM instance profile with EC2 instance
 iam_profile_response = ec2.associate_iam_instance_profile(
@@ -104,9 +102,18 @@ iam_profile_response = ec2.associate_iam_instance_profile(
     InstanceId=instance_id
 )
 
-# print(iam_profile_response)
+describe_env_response = cloud9.describe_environments(environmentIds=[environmentId])
+print(json.dumps(describe_env_response, indent=2))
+environment_state = describe_env_response['environments'][0]['lifecycle']['status']
 
-# Run shell commands on Cloud9 instance
+# wait for cloud9 to be CREATED
+while environment_state == "CREATING":
+    print("environment_state is creating")
+    time.sleep(5)
+    describe_env_response = cloud9.describe_environments(environmentIds=[environmentId])
+    environment_state = describe_env_response['environments'][0]['lifecycle']['status']
+
+# # Run shell commands on Cloud9 instance
 ssm_command_response = ssm.send_command(
     InstanceIds=[
         instance_id
@@ -122,5 +129,5 @@ ssm_command_response = ssm.send_command(
     }
 )
 
-print(ssm_command_response)
+# print(ssm_command_response)
 
