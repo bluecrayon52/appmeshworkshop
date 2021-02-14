@@ -1,4 +1,6 @@
 #!/bin/bash
+PATH="$PATH":/usr/local/bin
+
 export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 export AWS_REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/document | grep region | cut -d\" -f4)
 
@@ -55,19 +57,26 @@ IAM_ROLE=$(curl -s 169.254.169.254/latest/meta-data/iam/info | \
   jq -r '.InstanceProfileArn' | cut -d'/' -f2)
 
 #Check if the template is already deployed. If not, deploy it
-CFN_TEMPLATE=$(aws cloudformation list-stacks | jq -c '.StackSummaries[].StackName | select( . == "appmesh-workshop" )')
+# CFN_TEMPLATE=$(aws cloudformation list-stacks | jq -c '.StackSummaries[].StackName | select( . == "appmesh-workshop" )')
 
-if [ -z "$CFN_TEMPLATE" ]
-then
-  echo "Deploying Cloudformation Template"
-  aws cloudformation deploy \
-    --template-file appmesh-baseline.yml \
-    --stack-name appmesh-workshop \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides Cloud9IAMRole=$IAM_ROLE
-else
-  echo "Template already deployed. Go ahead to the next chapter."
-fi
+# if [ -z "$CFN_TEMPLATE" ]
+# then
+#   echo "Deploying Cloudformation Template"
+#   aws cloudformation deploy \
+#     --template-file appmesh-baseline.yml \
+#     --stack-name appmesh-workshop \
+#     --capabilities CAPABILITY_IAM \
+#     --parameter-overrides Cloud9IAMRole=$IAM_ROLE
+# else
+#   echo "Template already deployed. Go ahead to the next chapter."
+# fi
+
+echo "Deploying Cloudformation Template"
+aws cloudformation deploy \
+  --template-file appmesh-baseline.yml \
+  --stack-name appmesh-workshop \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides Cloud9IAMRole=$IAM_ROLE
 
 # Retrieve private key
 aws ssm get-parameter \
@@ -79,7 +88,6 @@ chmod 600 ~/.ssh/id_rsa
 
 # Store public key separately from private key
 ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
-
 
 # bootstrap script
 cat > ~/environment/scripts/bootstrap <<-"EOF"
