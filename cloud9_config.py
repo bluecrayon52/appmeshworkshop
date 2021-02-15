@@ -19,7 +19,7 @@ ssm = boto3.client('ssm', config=my_config)
 
 ide_name = 'AppMesh-Workshop'
 role_name = 'AppMesh-Workshop-Admin'
-profile_name = 'AppMesh-Workshop-Profile'
+profile_name = 'AppMesh-Workshop-Admin'
 managed_policy_arn = 'arn:aws:iam::aws:policy/AdministratorAccess'
 
 assume_role_policy_doc = json.dumps({
@@ -43,7 +43,7 @@ cloud9_create_response = cloud9.create_environment_ec2(
     tags=[
         {
             'Key': 'Env',
-            'Value': 'AppMesh-Workshop-6'       ##TAG
+            'Value': 'AppMesh-Workshop-E'       ##TAG
         },
     ]
 )
@@ -78,9 +78,9 @@ add_role_response = iam.add_role_to_instance_profile(
 time.sleep(30)
 
 # Describe the underlying EC2 instance
-ec2_describe_response = ec2.describe_instances(Filters=[{'Name': 'tag:Env','Values': ["AppMesh-Workshop-6"]}])     ##TAG
+ec2_describe_response = ec2.describe_instances(Filters=[{'Name': 'tag:Env','Values': ["AppMesh-Workshop-E"]}])     ##TAG
 
-print(ec2_describe_response)
+# print(ec2_describe_response)
 instance_id = ec2_describe_response['Reservations'][0]['Instances'][0]['InstanceId']
 instance_state = ec2_describe_response['Reservations'][0]['Instances'][0]['State']['Name']
 print(f"instance_state = {instance_state}")
@@ -91,7 +91,7 @@ print(f"instance_id = {instance_id}")
 while instance_state == "pending":
     print("instance_state is pending")
     time.sleep(5)
-    ec2_describe_response = ec2.describe_instances(Filters=[{'Name': 'tag:Env','Values': ["AppMesh-Workshop-6"]}])  ##TAG
+    ec2_describe_response = ec2.describe_instances(Filters=[{'Name': 'tag:Env','Values': ["AppMesh-Workshop-E"]}])  ##TAG
     instance_state = ec2_describe_response['Reservations'][0]['Instances'][0]['State']['Name']
 
 # # Associate IAM instance profile with EC2 instance
@@ -103,7 +103,7 @@ iam_profile_response = ec2.associate_iam_instance_profile(
 )
 
 describe_env_response = cloud9.describe_environments(environmentIds=[environmentId])
-print(json.dumps(describe_env_response, indent=2))
+# print(json.dumps(describe_env_response, indent=2))
 environment_state = describe_env_response['environments'][0]['lifecycle']['status']
 
 # wait for cloud9 to be CREATED
@@ -122,9 +122,9 @@ ssm_command_response = ssm.send_command(
     Parameters={
         'workingDirectory': ['/home/ec2-user/environment'],
         'commands': [
-            'curl -s https://raw.githubusercontent.com/bluecrayon52/appmeshworkshop/main/app_mesh.sh -o app_mesh.sh'
-            # 'chmod +x app_mesh.sh',
-            # 'sudo -u ec2-user ./app_mesh.sh'
+            'curl -s https://raw.githubusercontent.com/bluecrayon52/appmeshworkshop/main/app_mesh.sh -o app_mesh.sh',
+            'chmod +x app_mesh.sh',
+            'sudo -u ec2-user ./app_mesh.sh'
         ]
     }
 )
